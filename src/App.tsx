@@ -3,7 +3,7 @@ import './App.css';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import {Button, Form, FormGroup, Input, Label} from 'reactstrap';
 import axios from 'axios';
-const url:string = "http://127.0.0.1:8080";
+const url:string = "http://192.168.1.156:8080"; // todo read from config or auto detect?
 
 
 function App(this: any) {
@@ -45,7 +45,7 @@ return (
                 <Input type="text" id="username" onChange={(chg) => {
                     chg.preventDefault();
                     let x = chg.target.value
-                    console.log(x);
+                    // console.log(x);
                     setusername(x);
                 }}/>
             </FormGroup>
@@ -54,7 +54,7 @@ return (
                 <Input type="password" id="password" onChange={(chg) => {
                     chg.preventDefault();
                     let x = chg.target.value
-                    console.log(x);
+                    // console.log(x);
                     setPassword(x);
                 }}/>
             </FormGroup>
@@ -63,9 +63,14 @@ return (
         {
             console.log("trying logging in: " + username + " Pass: " + password);
             return axios.post(url+"/login", {username: username, password:password}).then((res) => {
-                console.log(res);
+                if(res.status === 202) {
+                    setLoginMessage("Accepted");
+                    setlogin(1);
+                }else {
+                    setLoginMessage("Invalid Credentials");
+                }
             }).catch((err) => {
-                console.log("err:" + err);
+                setLoginMessage("Invalid Credentials");
             })
         }
         }>login</button>
