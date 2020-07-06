@@ -1,10 +1,32 @@
 import React, {useState} from 'react';
 import './App.css';
 import 'bootstrap/dist/css/bootstrap.min.css';
-import {Button, Col, Container, Form, FormGroup, Input, Label, Row, Table} from 'reactstrap';
+import {
+    Button,
+    Col,
+    Container,
+    Form,
+    FormGroup,
+    Input,
+    Label,
+    Modal, ModalBody, ModalFooter,
+    Nav,
+    Navbar,
+    NavItem,
+    Row, Spinner,
+    Table
+} from 'reactstrap';
 import axios from 'axios';
+import {createSecretKey} from "crypto";
 const url:string = "http://192.168.1.156:8080"; // todo read from config or auto detect?
 
+function UserMessage(setUserMsg:any, message:string) {
+    if(message === "") {
+        setUserMsg(<Spinner size="sm" color="primary" />);
+    }else {
+        setUserMsg(message);
+    }
+}
 
 function App(this: any) {
 
@@ -18,19 +40,40 @@ function App(this: any) {
     const [seletedCompany, selectCompany] = useState("");
     const [shares, setShares] = useState(0);
     const [tradeOp, setTradeOp] = useState(0);
+    const [money, setMoney] = useState(0);
+    const [userMsg, setUserMsg] = useState(<Spinner size="sm" color="primary" />);
+    const [popup, setPopup] = useState(false);
+    const [focusAfterClose, setFocusAfterClose] = useState(true);
 
     if (loggedin === 0) {
      return loginscreen(setlogin,username,setusername, password, setPassword, loginMessage, setLoginMessage, setCompany, setTable, setCompanies);
     }
+    if(loggedin === -1){
+        // todo create account
+    }
   return ( // main menu
     <div className="App">
         {/*todo put a navbar with refresh, company name, and money*/}
-        <button onClick={() => {
-            fetchTable(setTable, setCompanies);
-        }}>Refresh</button>
-        <Container>
+        {/*todo get logged in company holdings as third column in main activity*/}
+
+        <Nav pills className="topBar">
+            <NavItem>
+                <button onClick={() => {
+                    fetchTable(setTable, setCompanies);
+                    // todo set money
+                }}>Refresh</button>
+            </NavItem>
+            <NavItem>
+                {company}
+            </NavItem>
+            <NavItem disabled>
+                ${money}
+            </NavItem>
+        </Nav>
+
+        <Container fluid>
             <Row>
-                <Col xs="8">
+                <Col xs="auto">
                     <Table striped>
                         <thead>
                         <tr>
@@ -45,7 +88,7 @@ function App(this: any) {
                         </tbody>
                     </Table>
                 </Col>
-                <Col xs="4">
+                <Col xs="auto">
                     <Form>
                         <FormGroup>
                             <Label for="SelectCompany"> Select Company</Label>
@@ -74,7 +117,7 @@ function App(this: any) {
                         </FormGroup>
                         <FormGroup check>
                             <Label check>
-                                <Input type="radio" name="radio1" onClick = {()=> {
+                                <Input type="radio" name="radio1" defaultChecked onClick = {(c)=> {
                                     setTradeOp(0)
                                 }}/>
                                 Sell
@@ -83,11 +126,31 @@ function App(this: any) {
                         <Button onClick={()=> {
                             // todo do rest request and the toast result and update table
                             console.log("trading:" + seletedCompany + shares + tradeOp + company);
+                            axios.post(url + "/trade", {buyer: company, seller:seletedCompany, amount: shares, operation: tradeOp}).then((res) => {
+                                setPopup(true);
+                                fetchTable(setTable,setCompanies);
+                                UserMessage(setUserMsg,res.data.message);
+                                console.log("traded")
+                                console.log(res);
+                            });
                         }}>Trade</Button>
                     </Form>
                 </Col>
             </Row>
         </Container>
+
+        <Modal returnFocusAfterClose={focusAfterClose} isOpen={popup}>
+            <ModalBody>
+                {userMsg}
+                {/*todo replace with spinner that changes once trade is complete, disable button until ready*/}
+            </ModalBody>
+            <ModalFooter>
+                <Button color="primary" id="closeBtn" onClick={() => {
+                    setPopup(!popup);
+                }}>Done</Button>
+            </ModalFooter>
+        </Modal>
+
     </div>
   );
 }
@@ -155,9 +218,9 @@ function fetchTable(setTable:any, setcompanies) {
                 results.push(
                     <tr>
                         <td>{rows.data[i].name}</td>
-                        <td>${1.00*rows.data[i].value}</td>
+                        <td>${(1.00*rows.data[i].value).toFixed(2)}</td>
                         <td>{rows.data[i].sharesRemaining}</td>
-                        <td>{(rows.data[i].previous_value - rows.data[i].value)/ rows.data[i].value }%</td>
+                        <td>{((rows.data[i].previous_value - rows.data[i].value)/ rows.data[i].value).toFixed(4) }%</td>
                         {/*// todo do computation on serverside*/}
                     </tr>
                 )
