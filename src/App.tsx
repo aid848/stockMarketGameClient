@@ -18,7 +18,7 @@ import {
 } from 'reactstrap';
 import axios from 'axios';
 import {createSecretKey} from "crypto";
-const url:string = "http://192.168.1.156:8080"; // todo read from config or auto detect?
+const url:string = "http://localhost:8080"; // todo read from config or auto detect?
 
 function UserMessage(setUserMsg:any, message:string) {
     if(message === "") {
@@ -30,12 +30,13 @@ function UserMessage(setUserMsg:any, message:string) {
 
 function App(this: any) {
 
-    const [loggedin, setlogin] = useState(0); // todo reenable login
+    const [loggedin, setlogin] = useState(0);
     const [username, setusername] = useState("");
     const [password, setPassword] = useState("");
     const [company, setCompany] = useState("");
     const [loginMessage, setLoginMessage] = useState("Please Login");
     const [tableRows, setTable] = useState([]);
+    const [holdingRows, setHoldingRows] = useState([]);
     const [companies, setCompanies] = useState([]);
     const [seletedCompany, selectCompany] = useState("");
     const [shares, setShares] = useState(0);
@@ -46,10 +47,11 @@ function App(this: any) {
     const [focusAfterClose, setFocusAfterClose] = useState(true);
 
     if (loggedin === 0) {
-     return loginscreen(setlogin,username,setusername, password, setPassword, loginMessage, setLoginMessage, setCompany, setTable, setCompanies);
+     return loginscreen(setlogin,username,setusername, password, setPassword, loginMessage,
+         setLoginMessage, setCompany, setTable, setCompanies, setHoldingRows, setMoney);
     }
     if(loggedin === -1){
-        // todo create account
+        // todo admin console
     }
   return ( // main menu
     <div className="App">
@@ -59,7 +61,7 @@ function App(this: any) {
         <Nav pills className="topBar">
             <NavItem>
                 <button onClick={() => {
-                    fetchTable(setTable, setCompanies);
+                    fetchTable(setTable, setCompanies, setHoldingRows, company, setMoney);
                     // todo set money
                 }}>Refresh</button>
             </NavItem>
@@ -125,16 +127,30 @@ function App(this: any) {
                         </FormGroup>
                         <Button onClick={()=> {
                             // todo do rest request and the toast result and update table
-                            console.log("trading:" + seletedCompany + shares + tradeOp + company);
+                            // console.log("trading:" + seletedCompany + shares + tradeOp + company);
                             axios.post(url + "/trade", {buyer: company, seller:seletedCompany, amount: shares, operation: tradeOp}).then((res) => {
                                 setPopup(true);
-                                fetchTable(setTable,setCompanies);
+                                fetchTable(setTable,setCompanies, setHoldingRows, company, setMoney);
                                 UserMessage(setUserMsg,res.data.message);
-                                console.log("traded")
-                                console.log(res);
+                                // console.log("traded")
+                                // console.log(res);
                             });
                         }}>Trade</Button>
                     </Form>
+                </Col>
+                <Col xs="auto" >
+                    <Table striped>
+                        <thead>
+                        <tr>
+                            <th>Held Company</th>
+                            <th>Amount of Shares</th>
+                            <th>Total Value</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        {holdingRows}
+                        </tbody>
+                    </Table>
                 </Col>
             </Row>
         </Container>
@@ -155,13 +171,15 @@ function App(this: any) {
   );
 }
 
-function loginscreen(setlogin:any,username:any,setusername:any, password:any, setPassword:any, loginMessage:any, setLoginMessage:any, setCompany:any, setTable:any, setCompanies:any) {
+function loginscreen(setlogin:any,username:any,setusername:any, password:any, setPassword:any,
+                     loginMessage:any, setLoginMessage:any, setCompany:any, setTable:any,
+                     setCompanies:any, setHoldingRows:any, setMoney) {
 
 return (
     <div className="login">
         <p>{loginMessage}</p>
         <Form onSubmit = {() => {
-            console.log()
+            // console.log()
         }}>
             <FormGroup>
                 <Label for="username">username</Label>
@@ -182,7 +200,7 @@ return (
                 }}/>
             </FormGroup>
         </Form>
-        <button onClick={() =>
+        <Button color="danger" onClick={() =>
         {
             // console.log("trying logging in: " + username + " Pass: " + password);
             return axios.post(url+"/login", {username: username, password:password}).then((res) => {
@@ -190,7 +208,7 @@ return (
                     setLoginMessage("Accepted");
                     // console.log( "axios data: "+res.data.name);
                     setCompany(res.data.name)
-                    fetchTable(setTable, setCompanies);
+                    fetchTable(setTable, setCompanies, setHoldingRows, res.data.name, setMoney);
                     setlogin(1);
                 }else {
                     setLoginMessage("Invalid Credentials");
@@ -199,14 +217,16 @@ return (
                 setLoginMessage("Invalid Credentials");
             })
         }
-        }>login</button>
+        }>Login</Button>
+        <p></p>
+        <Button color="warning" onClick={() => window.alert("I don't do anything yet")}>Admin Panel</Button>
     </div>
 )
 }
 
-function fetchTable(setTable:any, setcompanies) {
+function fetchTable(setTable:any, setcompanies:any, setHoldingRows:any, company:any, setMoney:any) {
     axios.get(url+ "/companies").then((rows) => {
-        console.log(rows);
+        // console.log(rows);
         let results:any[] = [];
         let comps:any[] = [];
         if(rows !== undefined) {
@@ -225,10 +245,36 @@ function fetchTable(setTable:any, setcompanies) {
                     </tr>
                 )
             }
-            console.log(comps)
+            // console.log(comps)
+
+
             setcompanies(comps);
             setTable(results)
         }
+    })
+
+    axios.get(url + "/company/" + company).then((rows) => {
+        console.log(rows);
+        let holdings:any[] = [];
+        let money: number = 0;
+        let length = rows.data.length;
+        for(let i:number = length - 1; i>=0; i--){
+            if(i === 0) { // todo optimize this out of loop
+                money = rows.data[i].money.toFixed(2);
+            }
+            if(rows.data[i].amount !== 0) {
+                holdings.push(
+                    <tr>
+                        <td>{rows.data[i].held}</td>
+                        <td>{rows.data[i].amount}</td>
+                        <td>${(rows.data[i].amount * rows.data[i].value).toFixed(2)}</td>
+                    </tr>
+                );
+            }
+        }
+
+        setHoldingRows(holdings);
+        setMoney(money);
     })
 }
 
