@@ -1,7 +1,7 @@
 import React, {useState} from 'react';
 import './App.css';
 import 'bootstrap/dist/css/bootstrap.min.css';
-import {OverlayTrigger, Popover} from "react-bootstrap";
+import {OverlayTrigger, Popover, Modal} from "react-bootstrap";
 import {
     Button,
     Col,
@@ -10,18 +10,17 @@ import {
     FormGroup,
     Input,
     Label,
-    Modal, ModalBody, ModalFooter,
     Nav,
     Navbar,
     NavItem,
     Row, Spinner,
-    Table, ToastBody, ToastHeader, Toast
+    Table
 } from 'reactstrap';
 import axios from 'axios';
 
 
 
-const url:string = "http://localhost:8080"; // todo read from config or auto detect?
+const url:string = "http://192.168.0.24:8080"; // todo read from config or auto detect?
 
 function UserMessage(setUserMsg:any, message:string) {
     if(message === "") {
@@ -43,76 +42,80 @@ function App(this: any) {
     const [companies, setCompanies] = useState([]);
     const [seletedCompany, selectCompany] = useState("");
     const [shares, setShares] = useState(0);
-    const [tradeOp, setTradeOp] = useState(0);
+    const [tradeOp, setTradeOp] = useState(1);
     const [money, setMoney] = useState(0);
     const [userMsg, setUserMsg] = useState(<Spinner size="sm" color="primary" />);
     const [popup, setPopup] = useState(false);
     const [focusAfterClose, setFocusAfterClose] = useState(true);
+    const [totalValue, setTotalValue] = useState(0);
     const [mainActivity, setMainActivity] = useState(BuildTradeScreen(tableRows, selectCompany, companies,setShares,tradeOp,setTradeOp,
-        company,shares,setPopup,setTable,setCompanies,setHoldingRows,setMoney,setUserMsg,holdingRows,seletedCompany))
+        company,shares,setPopup,setTable,setCompanies,setHoldingRows,setMoney,setUserMsg,holdingRows,seletedCompany, setTotalValue))
     const [notify, showNotify] = useState(false);
+    const [inspectCompany, setInspectCompany] = useState("Example");
+    const [companyPhoto, setCompanyPhoto] = useState("");
+    const [companyDescription, setDescription] = useState("");
+    const [companyUpdates, setCompanyUpdates] = useState([]);
+
 
     // setUserState(1);
 
     if (userState === 0) {
      return loginscreen(setUserState,username,setusername, password, setPassword, loginMessage,
-         setLoginMessage, setCompany, setTable, setCompanies, setHoldingRows, setMoney);
+         setLoginMessage, setCompany, setTable, setCompanies, setHoldingRows, setMoney, setTotalValue);
     } else if(userState === -1){
         // todo admin console
     } else if (userState === 2){
         // todo company info page
+        // let payload = companyPage(inspectCompany);
+        let data:any = 0;
+        {companyPage(inspectCompany).then((payload) => {setCompanyPhoto(payload.companyPhoto)})}
+            return (
+                <div className = "App">
+                    {generateMainNav(company, money, setTable, setCompanies, setHoldingRows, setMoney, setUserState,showNotify, setInspectCompany, totalValue, setTotalValue)}
+                    <img src={"data:image/jpg;base64," + companyPhoto} />
+                </div>
+            );
+
+
+
+
+    } else if (userState === 3){
+        return (<div className = "App">
+            {generateMainNav(company, money, setTable, setCompanies, setHoldingRows, setMoney, setUserState,showNotify, setInspectCompany, totalValue, setTotalValue)}
+            <Table striped style={{background: "white"}}>
+                <thead>
+                <tr>
+                    <th>Held Company</th>
+                    <th>Amount of Shares</th>
+                    <th>Total Value</th>
+                </tr>
+                </thead>
+                <tbody>
+                {holdingRows}
+                </tbody>
+            </Table>
+        </div>)
+    } else if(userState === 5) {
+        // trade history
+        return (
+            <div className = "App">
+                {generateMainNav(company, money, setTable, setCompanies, setHoldingRows, setMoney, setUserState,showNotify, setInspectCompany, totalValue, setTotalValue)}
+            </div>);
     }
   return ( // main menu
+
     <div className="App">
         {/*todo put a navbar with refresh, company name, and money*/}
         {/*todo get logged in company holdings as third column in main activity*/}
-        {/*{fetchTable(setTable, setCompanies, setHoldingRows, company, setMoney)} */}
-        <Navbar className="topBar">
-        <Nav className=" nav-fill w-100">
-            <NavItem disabled>
-                {company}<br/>
-                ${money}
-            </NavItem>
-            <NavItem>
-                <Button style={{background: '#ffffff', color: 'black'}} onClick={() => {
-                    fetchTable(setTable, setCompanies, setHoldingRows, company, setMoney);
-                }}>Refresh</Button>
-            </NavItem>
-            <NavItem>
-                <Button style={{background: '#ffffff', color: 'black'}} onClick={() => {
-                    alert("Coming soon!!!!")
-                }}>My Company</Button>
-            </NavItem>
-            <NavItem>
-                <Button style={{background: '#ffffff', color: 'black'}} onClick={() => {
-                    alert("Coming soon!!!!")
-                }}>Trade History</Button>
-            </NavItem>
-            <NavItem>
-                <Button style={{background: '#ffffff', color: 'black'}} onClick={() => {
-                    alert("Coming soon!!!!")
-                }}>My Holdings</Button>
-            </NavItem>
-            <NavItem>
-                {/*todo change to greyed out when no notification*/}
-                <img src='/Pixel_Perfact/bell.png' className="bellIcon" onClick={() => {
-                    showNotify(true);
-                }}></img>
-            </NavItem>
-        </Nav>
-    </Navbar>
 
-        <div>
-        <OverlayTrigger trigger="click" placement="right" overlay= {genPop()}>
-            <Button variant="success">Click me to see</Button>
-        </OverlayTrigger>
+        {generateMainNav(company, money, setTable, setCompanies, setHoldingRows, setMoney, setUserState,showNotify, setInspectCompany, totalValue, setTotalValue)}
 
-</div>
+
 
         <Container className="tradeScreen" >
             <div className="text">
                 <Row >
-                    <Col xs="auto">
+                    <Col xl="auto">
                         <Table striped>
                             <thead>
                             <tr>
@@ -128,7 +131,7 @@ function App(this: any) {
                         </Table>
                     </Col>
                     <Col xs="auto">
-                        <Form>
+                        <Form onSubmit={e => e.preventDefault()}>
                             <FormGroup>
                                 <Label for="SelectCompany"> Select Company</Label>
                                 <Input type="select" name="select" id="companySelect>" onChange={(chg) => {
@@ -141,14 +144,14 @@ function App(this: any) {
                             </FormGroup>
                             <FormGroup>
                                 <Label for="exampleEmail">Shares</Label>
-                                <Input type="number" name="shares" id="numberofShares" placeholder="Enter number of shares" onChange={(chg) => {
+                                <Input onSubmit={e=>{e.preventDefault()}} type="number" name="shares" id="numberofShares" placeholder="Enter number of shares" onChange={(chg) => {
                                     let val:number = parseInt(chg.target.value);
                                     setShares( val);
                                 }} />
                             </FormGroup>
                             <FormGroup check>
                                 <Label check style={{color: 'black'}}>
-                                    <Input type="radio" name="radio1" onClick = {()=> {
+                                    <Input type="radio" name="radio1" defaultChecked onClick = {()=> {
                                         setTradeOp(1)
                                     }} />
                                     Buy
@@ -156,7 +159,7 @@ function App(this: any) {
                             </FormGroup>
                             <FormGroup check >
                                 <Label check style={{color: 'black'}}>
-                                    <Input type="radio" name="radio1" defaultChecked onClick = {(c)=> {
+                                    <Input type="radio" name="radio1" onClick = {(c)=> {
                                         setTradeOp(0)
                                     }}/>
                                     Sell
@@ -167,7 +170,7 @@ function App(this: any) {
                                 // console.log("trading:" + seletedCompany + shares + tradeOp + company);
                                 axios.post(url + "/trade", {buyer: company, seller:seletedCompany, amount: shares, operation: tradeOp}).then((res) => {
                                     setPopup(true);
-                                    fetchTable(setTable,setCompanies, setHoldingRows, company, setMoney);
+                                    fetchTable(setTable,setCompanies, setHoldingRows, company, setMoney, setTotalValue);
                                     UserMessage(setUserMsg,res.data.message);
                                     // console.log("traded")
                                     // console.log(res);
@@ -175,52 +178,37 @@ function App(this: any) {
                             }}>Trade</Button>
                         </Form>
                     </Col>
-                    <Col xs="auto" >
-                        <Table striped>
-                            <thead>
-                            <tr>
-                                <th>Held Company</th>
-                                <th>Amount of Shares</th>
-                                <th>Total Value</th>
-                            </tr>
-                            </thead>
-                            <tbody>
-                            {holdingRows}
-                            </tbody>
-                        </Table>
-                    </Col>
+
                 </Row>
             </div>
         </Container>
 
-        <Modal returnFocusAfterClose={focusAfterClose} isHidden={popup}>
-            <ModalBody>
+        <Modal
+            show={popup}
+            // onHide={setPopup(!popup)}
+            backdrop="static"
+            keyboard={false}
+        >
+            <Modal.Header closeButton>
+                <Modal.Title>Modal title</Modal.Title>
+            </Modal.Header>
+            <Modal.Body>
                 {userMsg}
-                {/*todo replace with spinner that changes once trade is complete, disable button until ready*/}
-            </ModalBody>
-            <ModalFooter>
-                <Button color="primary" id="closeBtn" onClick={() => {
-                    setPopup(!popup);
-                }}>Done</Button>
-            </ModalFooter>
+            </Modal.Body>
+            <Modal.Footer>
+                <Button variant="secondary" onClick={() => {setPopup(!popup)}}>
+                    Done
+                </Button>
+            </Modal.Footer>
         </Modal>
-        {/*<div className="p-3 my-2 rounded bg-docs-transparent-grid" isOpen={notify}>*/}
-        {/*    <Toast>*/}
-        {/*        <ToastHeader>*/}
-        {/*            Reactstrap*/}
-        {/*        </ToastHeader>*/}
-        {/*        <ToastBody>*/}
-        {/*            This is a toast on a gridded background — check it out!*/}
-        {/*        </ToastBody>*/}
-        {/*    </Toast>*/}
-        {/*</div>*/}
+
     </div>
   );
 }
 
 function BuildTradeScreen(tableRows:any, selectCompany:any, companies:any, setShares:any, tradeOp:any, setTradeOp:any,
                           company:any, shares:any, setPopup:any, setTable:any, setCompanies:any, setHoldingRows:any, setMoney:any,
-                          setUserMsg:any, holdingRows:any, seletedCompany:any) {
+                          setUserMsg:any, holdingRows:any, seletedCompany:any, setTotalValue:any) {
     return (<Container className="tradeScreen" >
         <div className="text">
             <Row >
@@ -260,7 +248,7 @@ function BuildTradeScreen(tableRows:any, selectCompany:any, companies:any, setSh
                         </FormGroup>
                         <FormGroup check>
                             <Label check style={{color: 'black'}}>
-                                <Input type="radio" name="radio1" onClick = {()=> {
+                                <Input type="radio" name="radio1" defaultChecked onClick = {()=> {
                                     setTradeOp(1)
                                 }} />
                                 Buy
@@ -268,7 +256,7 @@ function BuildTradeScreen(tableRows:any, selectCompany:any, companies:any, setSh
                         </FormGroup>
                         <FormGroup check >
                             <Label check style={{color: 'black'}}>
-                                <Input type="radio" name="radio1" defaultChecked onClick = {(c)=> {
+                                <Input type="radio" name="radio1" onClick = {(c)=> {
                                     setTradeOp(0)
                                 }}/>
                                 Sell
@@ -279,7 +267,8 @@ function BuildTradeScreen(tableRows:any, selectCompany:any, companies:any, setSh
                             // console.log("trading:" + seletedCompany + shares + tradeOp + company);
                             axios.post(url + "/trade", {buyer: company, seller:seletedCompany, amount: shares, operation: tradeOp}).then((res) => {
                                 setPopup(true);
-                                fetchTable(setTable,setCompanies, setHoldingRows, company, setMoney);
+                                console.log("popup firing");
+                                fetchTable(setTable,setCompanies, setHoldingRows, company, setMoney, setTotalValue);
                                 UserMessage(setUserMsg,res.data.message);
                                 // console.log("traded")
                                 // console.log(res);
@@ -306,27 +295,93 @@ function BuildTradeScreen(tableRows:any, selectCompany:any, companies:any, setSh
     </Container> );
 }
 
-function genPop() {
-return (
-        <Popover id="popover-basic">
-            <Popover.Title as="h3">Popover right</Popover.Title>
-            <Popover.Content>
-                And here's some <strong>amazing</strong> content. It's very engaging.
-                right?
-            </Popover.Content>
-        </Popover>
-    );
+function genNotify() {
+    return null;
+// return (
+        // <Popover id="popover-basic">
+        //     <Popover.Title as="h3">Popover right</Popover.Title>
+        //     <Popover.Content>
+        //         And here's some <strong>amazing</strong> content. It's very engaging.
+        //         right?
+        //     </Popover.Content>
+        // </Popover>
+    // );
+}
+
+function generateMainNav(company:any, money:any, setTable:any, setCompanies:any, setHoldingRows:any, setMoney:any, setUserState:any,
+                         showNotify:any, setInspectCompany:any, totalValue:any, setTotalValue) {
+    let total:string = ""
+    if(totalValue >= 1000) { // todo change to base setting
+        total = "green";
+    }else {
+        total = "red"
+    }
+return (        <Navbar className="topBar">
+    <Nav className=" nav-fill w-100">
+        <NavItem disabled>
+            {company}<br/>
+            Cash: ${money} <br/>
+            Total: <p style ={{color: total}}>${totalValue}</p>
+        </NavItem>
+        <NavItem>
+            <Button style={{background: '#ffffff', color: 'black'}} onClick={() => {
+                fetchTable(setTable, setCompanies, setHoldingRows, company, setMoney, setTotalValue);
+            }}>Refresh</Button>
+        </NavItem>
+        <NavItem>
+            <Button style={{background: '#ffffff', color: 'black'}} onClick={() => {
+                setUserState(4);
+            }}>Trade Screen</Button>
+        </NavItem>
+        <NavItem>
+            <Button style={{background: '#ffffff', color: 'black'}} onClick={() => {
+                // alert("Coming soon!!!!")
+                // setInspectCompany(company);
+                setUserState(2);
+
+            }}>My Company</Button>
+        </NavItem>
+        <NavItem>
+            <Button style={{background: '#ffffff', color: 'black'}} onClick={() => {
+                // alert("Coming soon!!!!")
+                setUserState(5);
+            }}>Trade History</Button>
+        </NavItem>
+        <NavItem>
+            <Button style={{background: '#ffffff', color: 'black'}} onClick={() => {
+                //alert("Coming soon!!!!")
+                setUserState(3);
+            }}>My Holdings</Button>
+        </NavItem>
+        <NavItem>
+            {/*todo change to greyed out when no notification*/}
+
+            <OverlayTrigger trigger="click" placement="bottom" overlay={generatePop("test")}>
+                <img src='/Pixel_Perfact/bell.png' className="bellIcon"></img>
+            </OverlayTrigger>
+        </NavItem>
+    </Nav>
+</Navbar>);
+}
+
+function generatePop(msg:string) {
+    return (<Popover id="popover-basic">
+        <Popover.Title as="h3">Notification Tile</Popover.Title>
+        <Popover.Content>
+            <p>{msg}</p>
+        </Popover.Content>
+    </Popover>);
 }
 
 function loginscreen(setlogin:any,username:any,setusername:any, password:any, setPassword:any,
                      loginMessage:any, setLoginMessage:any, setCompany:any, setTable:any,
-                     setCompanies:any, setHoldingRows:any, setMoney) {
+                     setCompanies:any, setHoldingRows:any, setMoney:any, setTotalValue:any) {
 
 return (
     <div className="login">
         <p>{loginMessage}</p>
-        <Form onSubmit = {() => {
-            // console.log()
+        <Form onSubmit = {(e) => {
+            e.preventDefault();
         }}>
             <FormGroup>
                 <Label for="username">username</Label>
@@ -347,7 +402,7 @@ return (
                 }}/>
             </FormGroup>
         </Form>
-        <Button color="danger" onClick={() =>
+        <Button color="danger" type="submit" onClick={() =>
         {
             // console.log("trying logging in: " + username + " Pass: " + password);
             return axios.post(url+"/login", {username: username, password:password}).then((res) => {
@@ -355,7 +410,7 @@ return (
                     setLoginMessage("Accepted");
                     // console.log( "axios data: "+res.data.name);
                     setCompany(res.data.name)
-                    fetchTable(setTable, setCompanies, setHoldingRows, res.data.name, setMoney);
+                    fetchTable(setTable, setCompanies, setHoldingRows, res.data.name, setMoney, setTotalValue);
                     setlogin(1);
                 }else {
                     setLoginMessage("Invalid Credentials");
@@ -371,7 +426,7 @@ return (
 )
 }
 
-function fetchTable(setTable:any, setcompanies:any, setHoldingRows:any, company:any, setMoney:any) {
+function fetchTable(setTable:any, setcompanies:any, setHoldingRows:any, company:any, setMoney:any, setTotalValue:any) {
     axios.get(url+ "/companies").then((rows) => {
         // console.log(rows);
         let results:any[] = [];
@@ -403,13 +458,17 @@ function fetchTable(setTable:any, setcompanies:any, setHoldingRows:any, company:
     axios.get(url + "/company/" + company).then((rows) => {
         console.log(rows);
         let holdings:any[] = [];
+        let totalValue:number = 0;
         let money: number = 0;
         let length = rows.data.length;
         for(let i:number = length - 1; i>=0; i--){
             if(i === 0) { // todo optimize this out of loop
                 money = rows.data[i].money.toFixed(2);
+                // todo
+                // totalValue = rows.data[i].total.toFixed(2);
             }
             if(rows.data[i].amount !== 0) {
+                totalValue += ((rows.data[i].amount * rows.data[i].value) as number);
                 holdings.push(
                     <tr>
                         <td>{rows.data[i].held}</td>
@@ -419,10 +478,25 @@ function fetchTable(setTable:any, setcompanies:any, setHoldingRows:any, company:
                 );
             }
         }
-
+        // totalValue += money;
+        let x:string = ((parseFloat(String(totalValue))) + (parseFloat(String(money)))).toFixed(2);
+        console.log("x is :" + x);
         setHoldingRows(holdings);
         setMoney(money);
+        setTotalValue(x);
     })
 }
+
+function companyPage(name:string){
+    return new Promise<{description, updates, companyPhoto}>((resolve, reject) => {
+        return axios.get(url+"/companyPage/" + name).then((res) => {
+            resolve(res.data);
+        }).catch((e:any) => {
+            alert("error" + e)});
+            // reject(e);
+    });
+
+}
+
 
 export default App;
