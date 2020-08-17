@@ -1,7 +1,7 @@
 import React, {useState} from 'react';
 import './App.css';
 import 'bootstrap/dist/css/bootstrap.min.css';
-import {OverlayTrigger, Popover, Modal} from "react-bootstrap";
+import {OverlayTrigger, Popover, Modal, ListGroupItem, ListGroup} from "react-bootstrap";
 import {
     Button,
     Col,
@@ -20,7 +20,7 @@ import axios from 'axios';
 
 
 
-const url:string = "http://192.168.0.24:8080"; // todo read from config or auto detect?
+const url:string = "http://192.168.1.144:8080"; // todo read from config or auto detect?
 
 function UserMessage(setUserMsg:any, message:string) {
     if(message === "") {
@@ -67,12 +67,20 @@ function App(this: any) {
     } else if (userState === 2){
         // todo company info page
         // let payload = companyPage(inspectCompany);
-        let data:any = 0;
-        {companyPage(inspectCompany).then((payload) => {setCompanyPhoto(payload.companyPhoto)})}
             return (
                 <div className = "App">
-                    {generateMainNav(company, money, setTable, setCompanies, setHoldingRows, setMoney, setUserState,showNotify, setInspectCompany, totalValue, setTotalValue)}
-                    <img src={"data:image/jpg;base64," + companyPhoto} />
+                    {generateMainNav(company, money, setTable, setCompanies, setHoldingRows, setMoney, setUserState,showNotify, setInspectCompany, totalValue, setTotalValue, inspectCompany, setCompanyPhoto, setDescription, setCompanyUpdates)}
+
+                    <Container fluid className="companyPage">
+                        <Row>
+                        <Col><img className="companyPhoto" src={"data:image/jpg;base64," + companyPhoto} /> </Col>
+                            <Col> <p className="companyDescription">{companyDescription}</p> </Col>
+                        </Row>
+                        <Row>
+                        {renderUpdates(companyUpdates)}
+                        </Row>s
+                    </Container>
+                    <br/>
                 </div>
             );
 
@@ -81,7 +89,7 @@ function App(this: any) {
 
     } else if (userState === 3){
         return (<div className = "App">
-            {generateMainNav(company, money, setTable, setCompanies, setHoldingRows, setMoney, setUserState,showNotify, setInspectCompany, totalValue, setTotalValue)}
+            {generateMainNav(company, money, setTable, setCompanies, setHoldingRows, setMoney, setUserState,showNotify, setInspectCompany, totalValue, setTotalValue, inspectCompany, setCompanyPhoto, setDescription, setCompanyUpdates)}
             <Table striped style={{background: "white"}}>
                 <thead>
                 <tr>
@@ -99,16 +107,16 @@ function App(this: any) {
         // trade history
         return (
             <div className = "App">
-                {generateMainNav(company, money, setTable, setCompanies, setHoldingRows, setMoney, setUserState,showNotify, setInspectCompany, totalValue, setTotalValue)}
+                {generateMainNav(company, money, setTable, setCompanies, setHoldingRows, setMoney, setUserState,showNotify, setInspectCompany, totalValue, setTotalValue, inspectCompany, setCompanyPhoto, setDescription, setCompanyUpdates)}
             </div>);
     }
   return ( // main menu
 
     <div className="App">
-        {/*todo put a navbar with refresh, company name, and money*/}
-        {/*todo get logged in company holdings as third column in main activity*/}
 
-        {generateMainNav(company, money, setTable, setCompanies, setHoldingRows, setMoney, setUserState,showNotify, setInspectCompany, totalValue, setTotalValue)}
+
+
+        {generateMainNav(company, money, setTable, setCompanies, setHoldingRows, setMoney, setUserState,showNotify, setInspectCompany, totalValue, setTotalValue, inspectCompany, setCompanyPhoto, setDescription, setCompanyUpdates)}
 
 
 
@@ -309,7 +317,7 @@ function genNotify() {
 }
 
 function generateMainNav(company:any, money:any, setTable:any, setCompanies:any, setHoldingRows:any, setMoney:any, setUserState:any,
-                         showNotify:any, setInspectCompany:any, totalValue:any, setTotalValue) {
+                         showNotify:any, setInspectCompany:any, totalValue:any, setTotalValue, inspectCompany, setCompanyPhoto, setDescription, setCompanyUpdates) {
     let total:string = ""
     if(totalValue >= 1000) { // todo change to base setting
         total = "green";
@@ -338,6 +346,10 @@ return (        <Navbar className="topBar">
                 // alert("Coming soon!!!!")
                 // setInspectCompany(company);
                 setUserState(2);
+                companyPage(inspectCompany).then((payload) => {
+                    setCompanyPhoto(payload.companyPhoto);
+                    setDescription(payload.description);
+                    setCompanyUpdates(payload.updates);})
 
             }}>My Company</Button>
         </NavItem>
@@ -496,6 +508,26 @@ function companyPage(name:string){
             // reject(e);
     });
 
+}
+
+function renderUpdates(updates: any[]) {
+    let groups:any[] = [];
+    for(let x = 0; x<updates.length; x++ ) {
+        console.log(updates[x]);
+        groups.push(
+            <ListGroupItem>
+                {updates[x].toString("utf8")}
+            </ListGroupItem>
+        );
+    }
+    // return (<p>rip</p>);
+    return (
+        <ListGroup className="updates" >
+            <ListGroupItem>
+                {groups}
+            </ListGroupItem>
+        </ListGroup>
+    );
 }
 
 
