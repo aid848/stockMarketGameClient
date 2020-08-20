@@ -1,13 +1,11 @@
 import React, {useState} from 'react';
 import './App.css';
 import 'bootstrap/dist/css/bootstrap.min.css';
-import {OverlayTrigger, Popover, Modal, ListGroupItem, ListGroup} from "react-bootstrap";
+import {OverlayTrigger, Popover, Modal, ListGroupItem, ListGroup, Tooltip, Form, FormGroup, } from "react-bootstrap";
 import {
     Button,
     Col,
     Container,
-    Form,
-    FormGroup,
     Input,
     Label,
     Nav,
@@ -48,20 +46,20 @@ function App(this: any) {
     const [popup, setPopup] = useState(false);
     const [focusAfterClose, setFocusAfterClose] = useState(true);
     const [totalValue, setTotalValue] = useState(0);
-    const [mainActivity, setMainActivity] = useState(BuildTradeScreen(tableRows, selectCompany, companies,setShares,tradeOp,setTradeOp,
-        company,shares,setPopup,setTable,setCompanies,setHoldingRows,setMoney,setUserMsg,holdingRows,seletedCompany, setTotalValue))
     const [notify, showNotify] = useState(false);
-    const [inspectCompany, setInspectCompany] = useState("Example");
+    const [inspectCompany, setInspectCompany] = useState("");
     const [companyPhoto, setCompanyPhoto] = useState("");
     const [companyDescription, setDescription] = useState("");
     const [companyUpdates, setCompanyUpdates] = useState([]);
-
+    const [terms, setTerms] = useState(false);
+    const [mainActivity, setMainActivity] = useState(BuildTradeScreen(tableRows, selectCompany, companies,setShares,tradeOp,setTradeOp,
+        company,shares,setPopup,setTable,setCompanies,setHoldingRows,setMoney,setUserMsg,holdingRows,seletedCompany, setTotalValue, setInspectCompany, setUserState, inspectCompany,setCompanyPhoto, setDescription, setCompanyUpdates))
 
     // setUserState(1);
 
     if (userState === 0) {
      return loginscreen(setUserState,username,setusername, password, setPassword, loginMessage,
-         setLoginMessage, setCompany, setTable, setCompanies, setHoldingRows, setMoney, setTotalValue);
+         setLoginMessage, setCompany, setTable, setCompanies, setHoldingRows, setMoney, setTotalValue, setInspectCompany, setUserState, inspectCompany,setCompanyPhoto, setDescription, setCompanyUpdates);
     } else if(userState === -1){
         // todo admin console
     } else if (userState === 2){
@@ -69,7 +67,7 @@ function App(this: any) {
         // let payload = companyPage(inspectCompany);
             return (
                 <div className = "App">
-                    {generateMainNav(company, money, setTable, setCompanies, setHoldingRows, setMoney, setUserState,showNotify, setInspectCompany, totalValue, setTotalValue, inspectCompany, setCompanyPhoto, setDescription, setCompanyUpdates)}
+                    {generateMainNav(company, money, setTable, setCompanies, setHoldingRows, setMoney, setUserState,showNotify, setInspectCompany, totalValue, setTotalValue, inspectCompany, setCompanyPhoto, setDescription, setCompanyUpdates, setTradeOp, selectCompany)}
 
                     <Container fluid className="companyPage">
                         <Row>
@@ -78,18 +76,14 @@ function App(this: any) {
                         </Row>
                         <Row>
                         {renderUpdates(companyUpdates)}
-                        </Row>s
+                        </Row>
                     </Container>
                     <br/>
                 </div>
             );
-
-
-
-
     } else if (userState === 3){
         return (<div className = "App">
-            {generateMainNav(company, money, setTable, setCompanies, setHoldingRows, setMoney, setUserState,showNotify, setInspectCompany, totalValue, setTotalValue, inspectCompany, setCompanyPhoto, setDescription, setCompanyUpdates)}
+            {generateMainNav(company, money, setTable, setCompanies, setHoldingRows, setMoney, setUserState,showNotify, setInspectCompany, totalValue, setTotalValue, inspectCompany, setCompanyPhoto, setDescription, setCompanyUpdates, setTradeOp, selectCompany)}
             <Table striped style={{background: "white"}}>
                 <thead>
                 <tr>
@@ -107,8 +101,11 @@ function App(this: any) {
         // trade history
         return (
             <div className = "App">
-                {generateMainNav(company, money, setTable, setCompanies, setHoldingRows, setMoney, setUserState,showNotify, setInspectCompany, totalValue, setTotalValue, inspectCompany, setCompanyPhoto, setDescription, setCompanyUpdates)}
+                {generateMainNav(company, money, setTable, setCompanies, setHoldingRows, setMoney, setUserState,showNotify, setInspectCompany, totalValue, setTotalValue, inspectCompany, setCompanyPhoto, setDescription, setCompanyUpdates, setTradeOp, selectCompany)}
             </div>);
+    } else if(userState === 6) {
+        // create account
+        return newAccountScreen(terms, setTerms);
     }
   return ( // main menu
 
@@ -116,7 +113,7 @@ function App(this: any) {
 
 
 
-        {generateMainNav(company, money, setTable, setCompanies, setHoldingRows, setMoney, setUserState,showNotify, setInspectCompany, totalValue, setTotalValue, inspectCompany, setCompanyPhoto, setDescription, setCompanyUpdates)}
+        {generateMainNav(company, money, setTable, setCompanies, setHoldingRows, setMoney, setUserState,showNotify, setInspectCompany, totalValue, setTotalValue, inspectCompany, setCompanyPhoto, setDescription, setCompanyUpdates, setTradeOp, selectCompany)}
 
 
 
@@ -157,7 +154,7 @@ function App(this: any) {
                                     setShares( val);
                                 }} />
                             </FormGroup>
-                            <FormGroup check>
+                            <FormGroup>
                                 <Label check style={{color: 'black'}}>
                                     <Input type="radio" name="radio1" defaultChecked onClick = {()=> {
                                         setTradeOp(1)
@@ -165,7 +162,7 @@ function App(this: any) {
                                     Buy
                                 </Label>
                             </FormGroup>
-                            <FormGroup check >
+                            <FormGroup  >
                                 <Label check style={{color: 'black'}}>
                                     <Input type="radio" name="radio1" onClick = {(c)=> {
                                         setTradeOp(0)
@@ -178,7 +175,7 @@ function App(this: any) {
                                 // console.log("trading:" + seletedCompany + shares + tradeOp + company);
                                 axios.post(url + "/trade", {buyer: company, seller:seletedCompany, amount: shares, operation: tradeOp}).then((res) => {
                                     setPopup(true);
-                                    fetchTable(setTable,setCompanies, setHoldingRows, company, setMoney, setTotalValue);
+                                    fetchTable(setTable,setCompanies, setHoldingRows, company, setMoney, setTotalValue, setInspectCompany, setUserState, inspectCompany,setCompanyPhoto, setDescription, setCompanyUpdates);
                                     UserMessage(setUserMsg,res.data.message);
                                     // console.log("traded")
                                     // console.log(res);
@@ -216,7 +213,7 @@ function App(this: any) {
 
 function BuildTradeScreen(tableRows:any, selectCompany:any, companies:any, setShares:any, tradeOp:any, setTradeOp:any,
                           company:any, shares:any, setPopup:any, setTable:any, setCompanies:any, setHoldingRows:any, setMoney:any,
-                          setUserMsg:any, holdingRows:any, seletedCompany:any, setTotalValue:any) {
+                          setUserMsg:any, holdingRows:any, seletedCompany:any, setTotalValue:any, setInspectCompany, setUserState, inspectCompany,setCompanyPhoto, setDescription, setCompanyUpdates) {
     return (<Container className="tradeScreen" >
         <div className="text">
             <Row >
@@ -254,7 +251,7 @@ function BuildTradeScreen(tableRows:any, selectCompany:any, companies:any, setSh
                                 setShares( val);
                             }} />
                         </FormGroup>
-                        <FormGroup check>
+                        <FormGroup>
                             <Label check style={{color: 'black'}}>
                                 <Input type="radio" name="radio1" defaultChecked onClick = {()=> {
                                     setTradeOp(1)
@@ -262,7 +259,7 @@ function BuildTradeScreen(tableRows:any, selectCompany:any, companies:any, setSh
                                 Buy
                             </Label>
                         </FormGroup>
-                        <FormGroup check >
+                        <FormGroup >
                             <Label check style={{color: 'black'}}>
                                 <Input type="radio" name="radio1" onClick = {(c)=> {
                                     setTradeOp(0)
@@ -276,7 +273,7 @@ function BuildTradeScreen(tableRows:any, selectCompany:any, companies:any, setSh
                             axios.post(url + "/trade", {buyer: company, seller:seletedCompany, amount: shares, operation: tradeOp}).then((res) => {
                                 setPopup(true);
                                 console.log("popup firing");
-                                fetchTable(setTable,setCompanies, setHoldingRows, company, setMoney, setTotalValue);
+                                fetchTable(setTable,setCompanies, setHoldingRows, company, setMoney, setTotalValue, setInspectCompany, setUserState, inspectCompany,setCompanyPhoto, setDescription, setCompanyUpdates);
                                 UserMessage(setUserMsg,res.data.message);
                                 // console.log("traded")
                                 // console.log(res);
@@ -317,7 +314,7 @@ function genNotify() {
 }
 
 function generateMainNav(company:any, money:any, setTable:any, setCompanies:any, setHoldingRows:any, setMoney:any, setUserState:any,
-                         showNotify:any, setInspectCompany:any, totalValue:any, setTotalValue, inspectCompany, setCompanyPhoto, setDescription, setCompanyUpdates) {
+                         showNotify:any, setInspectCompany:any, totalValue:any, setTotalValue, inspectCompany, setCompanyPhoto, setDescription, setCompanyUpdates, setTradeOp, selectCompany) {
     let total:string = ""
     if(totalValue >= 1000) { // todo change to base setting
         total = "green";
@@ -333,11 +330,13 @@ return (        <Navbar className="topBar">
         </NavItem>
         <NavItem>
             <Button style={{background: '#ffffff', color: 'black'}} onClick={() => {
-                fetchTable(setTable, setCompanies, setHoldingRows, company, setMoney, setTotalValue);
+                fetchTable(setTable, setCompanies, setHoldingRows, company, setMoney, setTotalValue, setInspectCompany, setUserState, inspectCompany,setCompanyPhoto, setDescription, setCompanyUpdates);
             }}>Refresh</Button>
         </NavItem>
         <NavItem>
             <Button style={{background: '#ffffff', color: 'black'}} onClick={() => {
+                setTradeOp(1);
+                selectCompany("");
                 setUserState(4);
             }}>Trade Screen</Button>
         </NavItem>
@@ -345,8 +344,9 @@ return (        <Navbar className="topBar">
             <Button style={{background: '#ffffff', color: 'black'}} onClick={() => {
                 // alert("Coming soon!!!!")
                 // setInspectCompany(company);
+                setInspectCompany(company)
                 setUserState(2);
-                companyPage(inspectCompany).then((payload) => {
+                companyPage(company).then((payload) => {
                     setCompanyPhoto(payload.companyPhoto);
                     setDescription(payload.description);
                     setCompanyUpdates(payload.updates);})
@@ -387,7 +387,7 @@ function generatePop(msg:string) {
 
 function loginscreen(setlogin:any,username:any,setusername:any, password:any, setPassword:any,
                      loginMessage:any, setLoginMessage:any, setCompany:any, setTable:any,
-                     setCompanies:any, setHoldingRows:any, setMoney:any, setTotalValue:any) {
+                     setCompanies:any, setHoldingRows:any, setMoney:any, setTotalValue:any, setInspectCompany, setUserState, inspectCompany,setCompanyPhoto, setDescription, setCompanyUpdates) {
 
 return (
     <div className="login">
@@ -414,7 +414,7 @@ return (
                 }}/>
             </FormGroup>
         </Form>
-        <Button color="danger" type="submit" onClick={() =>
+        <Button color="danger" type="submit" className="loginButtons" onClick={() =>
         {
             // console.log("trying logging in: " + username + " Pass: " + password);
             return axios.post(url+"/login", {username: username, password:password}).then((res) => {
@@ -422,7 +422,8 @@ return (
                     setLoginMessage("Accepted");
                     // console.log( "axios data: "+res.data.name);
                     setCompany(res.data.name)
-                    fetchTable(setTable, setCompanies, setHoldingRows, res.data.name, setMoney, setTotalValue);
+                    console.log("res data name:" + res.data.name);
+                    fetchTable(setTable, setCompanies, setHoldingRows, res.data.name, setMoney, setTotalValue, setInspectCompany, setUserState, inspectCompany,setCompanyPhoto, setDescription, setCompanyUpdates);
                     setlogin(1);
                 }else {
                     setLoginMessage("Invalid Credentials");
@@ -432,13 +433,16 @@ return (
             })
         }
         }>Login</Button>
-        <p></p>
-        <Button color="warning" onClick={() => window.alert("I don't do anything yet")}>Admin Panel</Button>
+        <Button color="success" className="loginButtons" onClick={()=> {
+            setUserState(6);
+        }}>Create Account</Button>
+        <br/>
+        <Button color="warning" className="loginButtons" onClick={() => window.alert("I don't do anything yet")}>Admin Panel</Button>
     </div>
 )
 }
 
-function fetchTable(setTable:any, setcompanies:any, setHoldingRows:any, company:any, setMoney:any, setTotalValue:any) {
+function fetchTable(setTable:any, setcompanies:any, setHoldingRows:any, company:any, setMoney:any, setTotalValue:any, setInspectCompany, setUserState, inspectCompany,setCompanyPhoto, setDescription, setCompanyUpdates ) {
     axios.get(url+ "/companies").then((rows) => {
         // console.log(rows);
         let results:any[] = [];
@@ -451,7 +455,29 @@ function fetchTable(setTable:any, setcompanies:any, setHoldingRows:any, company:
                 );
                 results.push(
                     <tr>
-                        <td>{rows.data[i].name}</td>
+                        <td onClick={() => {
+                            let name:string = rows.data[i].name;
+                            setInspectCompany(name);
+                            companyPage(name).then((payload) => {
+                                return payload;
+                            }).then((payload) => {
+                                let name:string = rows.data[i].name;
+                                setCompanyPhoto(payload.companyPhoto);
+                                setDescription(payload.description);
+                                setCompanyUpdates(payload.updates);
+                                console.log(name);
+                                console.log(inspectCompany);
+                                setUserState(2);
+                            });
+                        }
+                        } style={{fontWeight: "bolder"}}>
+                            <OverlayTrigger overlay={<Tooltip id="tooltip">Click for more info!</Tooltip>}>
+                                 <span className="d-inline-block">
+                                     <Button color='primary'>{rows.data[i].name}</Button>
+                                 </span>
+                            </OverlayTrigger>
+
+                        </td>
                         <td>${(1.00*rows.data[i].value).toFixed(2)}</td>
                         <td>{rows.data[i].sharesRemaining}</td>
                         <td>{((rows.data[i].previous_value - rows.data[i].value)/ rows.data[i].value).toFixed(4) }%</td>
@@ -469,6 +495,7 @@ function fetchTable(setTable:any, setcompanies:any, setHoldingRows:any, company:
 
     axios.get(url + "/company/" + company).then((rows) => {
         console.log(rows);
+        console.log("sending name:" + company);
         let holdings:any[] = [];
         let totalValue:number = 0;
         let money: number = 0;
@@ -530,5 +557,72 @@ function renderUpdates(updates: any[]) {
     );
 }
 
+function newAccountScreen(terms, setTerms) {
+    // set the user state back to 2 after
+    return (
+        <div className="login">
+            <Form>
+                <Form.Group controlId="username">
+                    <Form.Label>Username</Form.Label>
+                    <Form.Control type="textarea" placeholder="Enter username" />
+                    <Form.Text className="text-muted">
+                        It must be unique
+                    </Form.Text>
+                </Form.Group>
+
+                <Form.Group controlId="companyName">
+                    <Form.Label>Company Name</Form.Label>
+                    <Form.Control type="textarea" placeholder="Enter your company name" />
+                    <Form.Text className="text-muted">
+                        This is what other's will see on the trade screen
+                    </Form.Text>
+                </Form.Group>
+
+                <Form.Group controlId="formBasicPassword">
+                    <Form.Label>Password</Form.Label>
+                    <Form.Control type="password" placeholder="Password" />
+                </Form.Group>
+                <Form.Group>
+                    <Form.File id="exampleFormControlFile1" label="Company logo" />
+                    <Form.Text className="text-muted">
+                        Please only upload a .jpg photo
+                    </Form.Text>
+                </Form.Group>
+                <Form.Group controlId="description">
+                    <Form.Label>company description</Form.Label>
+                    <Form.Control as="textarea" />
+                </Form.Group>
+                <Form.Group controlId="agree">
+                    <Form.Check type="checkbox" label="I agree to the terms and conditions" />
+                    <a className="terms" onClick={()=> {
+                        setTerms(!terms);
+                    }}>Terms and Conditions Here</a>
+                </Form.Group>
+                <Button variant="primary" type="submit">
+                    Submit
+                </Button>
+            </Form>
+
+            <Modal
+                show={terms}
+                backdrop="static"
+                keyboard={false}
+            >
+                <Modal.Header closeButton>
+                    <Modal.Title>Modal title</Modal.Title>
+                </Modal.Header>
+                <Modal.Body>
+                    terms here
+                </Modal.Body>
+                <Modal.Footer>
+                    <Button variant="secondary" onClick={() => {setTerms(!terms)}}>
+                        Done
+                    </Button>
+                </Modal.Footer>
+            </Modal>
+        </div>
+
+    )
+}
 
 export default App;

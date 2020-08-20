@@ -96,5 +96,14 @@
 .companyDescription {
   align-self: center;
   align-content: center;
+
 }
 
+.loginButtons{
+margin-bottom: 2%;
+}
+
+.terms{
+  font-weight: bold;
+  text-underline: white;
+}
