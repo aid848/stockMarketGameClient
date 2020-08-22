@@ -107,7 +107,7 @@ function App(this: any) {
             </div>);
     } else if(userState === 6) {
         // create account
-        return newAccountScreen(terms, setTerms, validated, setValidated, newUserData, setNewUserData);
+        return newAccountScreen(terms, setTerms, validated, setValidated, newUserData, setNewUserData, setUserState);
     }
   return ( // main menu
 
@@ -562,8 +562,20 @@ function renderUpdates(updates: any[]) {
     );
 }
 
-function newAccountScreen(this: any, terms, setTerms, validated, setValidated, newUserData ,setNewUserData) {
-    // set the user state back to 2 after
+function newAccountScreen(this: any, userMsg, setUserMsg, validated, setValidated, newUserData ,setNewUserData, setUserState) {
+    // todo get terms from the server
+    let messageToShow:any = ""; // todo change to hook because not showing actual element
+    let terms = (
+    <p>(1) The names, comments and information that you use into your account will be appropriate for viewing of other students in our school learning environment.
+    <br/>
+    2) The name and core business ideas of your company will bear no direct and obvious connection to real-life companies or organizations.
+    <br/>
+    3) Voting on other student companies will be based on business principles and economic information that you have learned and understood. Your decisions will not be influenced by personal friendships or other social factors.
+    <br/>
+    4) You will make your best efforts and use your learning to maintain and develop your business so that it continues to develop and evolve.
+    <br/>
+    5) You will help your classmates to improve and develop their company during the business development conferences and meetings taking place during the unit.
+        <br/> </p>)
 
     const handleNewAccountSubmit = (event) => {
         const form = event.currentTarget;
@@ -575,12 +587,23 @@ function newAccountScreen(this: any, terms, setTerms, validated, setValidated, n
         console.log(newUserData);
         setValidated(true);
         axios.post(url + "/accountCreate", newUserData).then((res) => {
-            if(res.data.accountCreated === true) {
+            console.log(res.data);
+            if(res.data.accountCreated === "true") {
                 console.log("success");
+                messageToShow = (<p>account created</p>);
+                setUserMsg(!userMsg);
+                setTimeout(() => {setUserState(0)}, 1000);
+            }else  {
+                messageToShow = (<p>account rejected</p>);
+                setUserMsg(!userMsg);
             }
         }).catch((err)=> {
                 console.log(err);
                 console.log(newUserData);
+                // todo put error message here
+                messageToShow = (<p>account failed to be created, {err}</p>);
+                setUserMsg(!userMsg);
+
         })
     }
 
@@ -682,7 +705,8 @@ function newAccountScreen(this: any, terms, setTerms, validated, setValidated, n
                 <Form.Group controlId="agree">
                     <Form.Check type="checkbox" label="I agree to the terms and conditions" required />
                     <a className="terms" onClick={()=> {
-                        setTerms(!terms);
+                        messageToShow = terms;
+                        setUserMsg(!userMsg);
                     }}>Terms and Conditions Here</a>
                 </Form.Group>
                 <Button variant="primary" type="submit">
@@ -691,7 +715,7 @@ function newAccountScreen(this: any, terms, setTerms, validated, setValidated, n
             </Form>
 
             <Modal
-                show={terms}
+                show={userMsg}
                 backdrop="static"
                 keyboard={false}
             >
@@ -700,19 +724,10 @@ function newAccountScreen(this: any, terms, setTerms, validated, setValidated, n
                 </Modal.Header>
                 <Modal.Body>
                     {/*todo recieve terms from server*/}
-                    1) The names, comments and information that you use into your account will be appropriate for viewing of other students in our school learning environment.
-                    <br/>
-                    2) The name and core business ideas of your company will bear no direct and obvious connection to real-life companies or organizations.
-                    <br/>
-                    3) Voting on other student companies will be based on business principles and economic information that you have learned and understood. Your decisions will not be influenced by personal friendships or other social factors.
-                    <br/>
-                    4) You will make your best efforts and use your learning to maintain and develop your business so that it continues to develop and evolve.
-                    <br/>
-                    5) You will help your classmates to improve and develop their company during the business development conferences and meetings taking place during the unit.
-                    <br/>
+                    {messageToShow}
                 </Modal.Body>
                 <Modal.Footer>
-                    <Button variant="secondary" onClick={() => {setTerms(!terms)}}>
+                    <Button variant="secondary" onClick={() => {setUserMsg(!userMsg)}}>
                         Close
                     </Button>
                 </Modal.Footer>
