@@ -52,6 +52,8 @@ function App(this: any) {
     const [companyDescription, setDescription] = useState("");
     const [companyUpdates, setCompanyUpdates] = useState([]);
     const [terms, setTerms] = useState(false);
+    const [validated, setValidated] = useState(false);
+    const [newUserData, setNewUserData] = useState({name: "", password: "", cname: "", description: "", logo: ""});
     const [mainActivity, setMainActivity] = useState(BuildTradeScreen(tableRows, selectCompany, companies,setShares,tradeOp,setTradeOp,
         company,shares,setPopup,setTable,setCompanies,setHoldingRows,setMoney,setUserMsg,holdingRows,seletedCompany, setTotalValue, setInspectCompany, setUserState, inspectCompany,setCompanyPhoto, setDescription, setCompanyUpdates))
 
@@ -105,7 +107,7 @@ function App(this: any) {
             </div>);
     } else if(userState === 6) {
         // create account
-        return newAccountScreen(terms, setTerms);
+        return newAccountScreen(terms, setTerms, validated, setValidated, newUserData, setNewUserData);
     }
   return ( // main menu
 
@@ -450,6 +452,9 @@ function fetchTable(setTable:any, setcompanies:any, setHoldingRows:any, company:
         if(rows !== undefined) {
             let x: number = rows.data.length;
             for(let i:number = x-1; i>=0; i--) {
+                if (rows.data[i].name === "DEBUG-SHOULD-NOT-APPEAR") {
+                    continue;
+                }
                 comps.push(
                     <option>{rows.data[i].name}</option>
                 );
@@ -557,14 +562,92 @@ function renderUpdates(updates: any[]) {
     );
 }
 
-function newAccountScreen(terms, setTerms) {
+function newAccountScreen(this: any, terms, setTerms, validated, setValidated, newUserData ,setNewUserData) {
     // set the user state back to 2 after
+
+    const handleNewAccountSubmit = (event) => {
+        const form = event.currentTarget;
+        if(form.checkValidity() === false) {
+            event.preventDefault();
+            event.stopPropagation();
+        }
+        event.preventDefault();
+        console.log(newUserData);
+        setValidated(true);
+        axios.post(url + "/accountCreate", newUserData).then((res) => {
+            if(res.data.accountCreated === true) {
+                console.log("success");
+            }
+        }).catch((err)=> {
+                console.log(err);
+                console.log(newUserData);
+        })
+    }
+
+    //todo find some way to not duplicate this code because it's dumb
+    const handleUsernameChange = (e) => {
+        const input = e.target.value;
+        let userData = newUserData;
+        userData["name"] = input;
+        // console.log(input);
+        setNewUserData(userData);
+    }
+
+    const handlePasswordChange = (e) => {
+        const input = e.target.value;
+        let userData = newUserData;
+        userData["password"] = input;
+        setNewUserData(userData);
+    }
+
+    const handleDescriptionChange = (e) => {
+        const input = e.target.value;
+        let userData = newUserData;
+        userData["description"] = input;
+        setNewUserData(userData);
+    }
+
+    const handleCompanyChange = (e) => {
+        const input = e.target.value;
+        let userData = newUserData;
+        userData["cname"] = input;
+        setNewUserData(userData);
+    }
+// https://stackoverflow.com/questions/36280818/how-to-convert-file-to-base64-in-javascript
+    const toBase64 = file => new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = error => reject(error);
+    });
+
+    const handleLogoChange = (e) => {
+        let input = e.target.files[0];
+        if(e.target.files[0].type !== "image/jpeg"){
+            // todo say input is bad
+        }else {
+            toBase64(input).then((output) => {
+                // console.log(output);
+                let userData = newUserData;
+                userData["logo"] = output;
+                setNewUserData(userData);
+            }).catch((err) => {
+                console.log(err);
+                // todo tell user image is bad
+            })
+        }
+    }
+
+
     return (
         <div className="login">
-            <Form>
+            <Form noValidate validated={validated} onSubmit={handleNewAccountSubmit}>
                 <Form.Group controlId="username">
                     <Form.Label>Username</Form.Label>
-                    <Form.Control type="textarea" placeholder="Enter username" />
+                    <Form.Control type="textarea" placeholder="Enter username"
+                                  onChange={handleUsernameChange}
+                    required
+                    />
                     <Form.Text className="text-muted">
                         It must be unique
                     </Form.Text>
@@ -572,7 +655,9 @@ function newAccountScreen(terms, setTerms) {
 
                 <Form.Group controlId="companyName">
                     <Form.Label>Company Name</Form.Label>
-                    <Form.Control type="textarea" placeholder="Enter your company name" />
+                    <Form.Control type="textarea" placeholder="Enter your company name"
+                                 onChange={handleCompanyChange} required
+                    />
                     <Form.Text className="text-muted">
                         This is what other's will see on the trade screen
                     </Form.Text>
@@ -580,20 +665,22 @@ function newAccountScreen(terms, setTerms) {
 
                 <Form.Group controlId="formBasicPassword">
                     <Form.Label>Password</Form.Label>
-                    <Form.Control type="password" placeholder="Password" />
+                    <Form.Control type="password" placeholder="Password"
+                                 onChange={handlePasswordChange} required
+                    />
                 </Form.Group>
                 <Form.Group>
-                    <Form.File id="exampleFormControlFile1" label="Company logo" />
+                    <Form.File id="formlogo" label="Company logo" required onChange={handleLogoChange} />
                     <Form.Text className="text-muted">
                         Please only upload a .jpg photo
                     </Form.Text>
                 </Form.Group>
                 <Form.Group controlId="description">
                     <Form.Label>company description</Form.Label>
-                    <Form.Control as="textarea" />
+                    <Form.Control as="textarea" required onChange={handleDescriptionChange}/>
                 </Form.Group>
                 <Form.Group controlId="agree">
-                    <Form.Check type="checkbox" label="I agree to the terms and conditions" />
+                    <Form.Check type="checkbox" label="I agree to the terms and conditions" required />
                     <a className="terms" onClick={()=> {
                         setTerms(!terms);
                     }}>Terms and Conditions Here</a>
@@ -609,14 +696,24 @@ function newAccountScreen(terms, setTerms) {
                 keyboard={false}
             >
                 <Modal.Header closeButton>
-                    <Modal.Title>Modal title</Modal.Title>
+                    <Modal.Title>Terms and Conditions</Modal.Title>
                 </Modal.Header>
                 <Modal.Body>
-                    terms here
+                    {/*todo recieve terms from server*/}
+                    1) The names, comments and information that you use into your account will be appropriate for viewing of other students in our school learning environment.
+                    <br/>
+                    2) The name and core business ideas of your company will bear no direct and obvious connection to real-life companies or organizations.
+                    <br/>
+                    3) Voting on other student companies will be based on business principles and economic information that you have learned and understood. Your decisions will not be influenced by personal friendships or other social factors.
+                    <br/>
+                    4) You will make your best efforts and use your learning to maintain and develop your business so that it continues to develop and evolve.
+                    <br/>
+                    5) You will help your classmates to improve and develop their company during the business development conferences and meetings taking place during the unit.
+                    <br/>
                 </Modal.Body>
                 <Modal.Footer>
                     <Button variant="secondary" onClick={() => {setTerms(!terms)}}>
-                        Done
+                        Close
                     </Button>
                 </Modal.Footer>
             </Modal>
@@ -624,5 +721,7 @@ function newAccountScreen(terms, setTerms) {
 
     )
 }
+
+
 
 export default App;
