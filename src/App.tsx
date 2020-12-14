@@ -18,7 +18,7 @@ import axios from 'axios';
 
 
 
-const url:string = "http://192.168.1.144:8080"; // todo read from config or auto detect?
+const url:string = "http://192.168.1.134:8080"; // todo read from config or auto detect?
 
 function UserMessage(setUserMsg:any, message:string) {
     if(message === "") {
